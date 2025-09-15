@@ -7,8 +7,10 @@ python_version: "3.11+"
 
 installation:
   commands:
+    - "uv venv .venv"
+    - "source .venv/bin/activate"
     - "uv pip install -e ."
-  description: "Install the coding agent and its dependencies using pip or uv"
+  description: "Install the coding agent and its dependencies using uv"
 
 interface:
   methods:

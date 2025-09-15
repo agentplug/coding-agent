@@ -15,12 +15,15 @@ The Coding Agent generates Python code based on natural language prompts and can
 Generates Python code based on a natural language prompt.
 
 **Parameters:**
+
 - `prompt` (string, required): Natural language description of code to generate
 
 **Returns:**
+
 - Generated Python code as a string
 
 **Example:**
+
 ```bash
 python agent.py '{"method": "generate_code", "parameters": {"prompt": "Create a function that adds two numbers"}}'
 ```
@@ -30,12 +33,15 @@ python agent.py '{"method": "generate_code", "parameters": {"prompt": "Create a 
 Explains what a piece of Python code does.
 
 **Parameters:**
+
 - `code` (string, required): Python code to explain
 
 **Returns:**
+
 - Explanation of what the code does
 
 **Example:**
+
 ```bash
 python agent.py '{"method": "explain_code", "parameters": {"code": "def add_numbers(a, b): return a + b"}}'
 ```
@@ -49,6 +55,7 @@ python agent.py '{"method": "explain_code", "parameters": {"code": "def add_numb
 ## Setup
 
 1. **Create virtual environment:**
+
    ```bash
    uv venv .venv
    source .venv/bin/activate  # Unix/macOS
@@ -56,11 +63,13 @@ python agent.py '{"method": "explain_code", "parameters": {"code": "def add_numb
    ```
 
 2. **Install dependencies:**
+
    ```bash
-   uv pip install -r requirements.txt
+   uv pip install -e .
    ```
 
 3. **Set up API key (optional):**
+
    ```bash
    export OPENAI_API_KEY="your-api-key-here"
    # or create ~/.agenthub/.env file
@@ -84,6 +93,7 @@ python agent.py '{"method": "explain_code", "parameters": {"code": "def factoria
 ## Error Handling
 
 The agent gracefully handles:
+
 - Missing API keys (provides fallback responses)
 - Invalid method names
 - Missing parameters

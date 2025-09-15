@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coding-agent"
+version = "1.0.0"
+description = "Generate Python code based on natural language prompts"
+authors = [{ name = "agentplug" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["code-generation", "python", "ai-assistant"]
+
+dependencies = [
+    "aisuite[openai]>=0.1.7",
+    "python-dotenv>=1.0.0",
+    "docstring-parser>=0.17.0",
+]
+
+[project.scripts]
+coding-agent = "agent:main"
+
+[project.urls]
+Homepage = "https://github.com/agentplug/coding-agent"
+Repository = "https://github.com/agentplug/coding-agent"
+Issues = "https://github.com/agentplug/coding-agent/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.yml"]

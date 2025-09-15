@@ -122,7 +122,7 @@ The agent can be configured via the `config.json` file. Here's the structure:
 }
 ```
 
-### Configuration Options:
+### Configuration Options
 
 - **ai.model**: The AI model to use (e.g., "openai:gpt-4.1", "openai:gpt-3.5-turbo")
 - **ai.temperature**: Controls randomness (0.0 to 1.0, lower = more deterministic)

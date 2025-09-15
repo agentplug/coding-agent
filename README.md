@@ -75,6 +75,13 @@ python agent.py '{"method": "explain_code", "parameters": {"code": "def add_numb
    # or create ~/.agenthub/.env file
    ```
 
+4. **Configure the agent (optional):**
+   Edit `config.json` to customize:
+   - AI model selection
+   - Temperature and other AI parameters
+   - System prompts for different methods
+   - Error messages
+
 ## Usage
 
 The agent accepts JSON input via command line and returns JSON output:
@@ -90,6 +97,40 @@ python agent.py '{"method": "generate_code", "parameters": {"prompt": "Create a 
 python agent.py '{"method": "explain_code", "parameters": {"code": "def factorial(n): return 1 if n <= 1 else n * factorial(n-1)"}}'
 ```
 
+## Configuration
+
+The agent can be configured via the `config.json` file. Here's the structure:
+
+```json
+{
+  "ai": {
+    "model": "openai:gpt-4.1",
+    "temperature": 0.1,
+    "max_tokens": null,
+    "timeout": 30
+  },
+  "system_prompts": {
+    "generate_code": "You are a Python code generator...",
+    "explain_code": "You are a Python code explainer...",
+    "validate_code": "You are a code validator..."
+  },
+  "error_messages": {
+    "generate_code": "# Error generating code: {error}...",
+    "explain_code": "Error explaining code: {error}...",
+    "validate_code": "Error validating code: {error}..."
+  }
+}
+```
+
+### Configuration Options:
+
+- **ai.model**: The AI model to use (e.g., "openai:gpt-4.1", "openai:gpt-3.5-turbo")
+- **ai.temperature**: Controls randomness (0.0 to 1.0, lower = more deterministic)
+- **ai.max_tokens**: Maximum tokens in response (null for no limit)
+- **ai.timeout**: Request timeout in seconds
+- **system_prompts**: Custom prompts for each method
+- **error_messages**: Custom error messages with {error} placeholder
+
 ## Error Handling
 
 The agent gracefully handles:
@@ -99,6 +140,7 @@ The agent gracefully handles:
 - Missing parameters
 - Network connectivity issues
 - AI service errors
+- Missing or invalid config.json (uses default configuration)
 
 All errors are returned in JSON format with an `error` field.
 

@@ -40,4 +40,4 @@ where = ["."]
 include = ["*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.yaml", "*.yml"]
+"*" = ["*.yaml", "*.yml", "*.json"]

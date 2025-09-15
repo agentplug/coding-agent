@@ -6,6 +6,7 @@ Generates Python code based on natural language prompts.
 
 import json
 import sys
+import os
 from typing import Dict, Any
 
 class CodingAgent:
@@ -13,7 +14,34 @@ class CodingAgent:
     
     def __init__(self):
         """Initialize the coding agent."""
-        pass
+        self.config = self._load_config()
+    
+    def _load_config(self) -> Dict[str, Any]:
+        """Load configuration from config.json file."""
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        try:
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            # Fallback to default configuration if config.json doesn't exist
+            return {
+                "ai": {
+                    "model": "openai:gpt-4.1",
+                    "temperature": 0.1,
+                    "max_tokens": None,
+                    "timeout": 30
+                },
+                "system_prompts": {
+                    "generate_code": "You are a Python code generator. Generate only valid, working Python code. Do not include explanations, just the code.",
+                    "explain_code": "You are a Python code explainer. Explain what the code does in simple terms.",
+                    "validate_code": "You are a code validator. Check the provided code against the given criteria. Your answer must have a concise analysis, then based on that to answer PASS or FAIL."
+                },
+                "error_messages": {
+                    "generate_code": "# Error generating code: {error}\n# Please check your API key and internet connection.",
+                    "explain_code": "Error explaining code: {error}. Please check your API key and internet connection.",
+                    "validate_code": "Error validating code: {error}. Please check your API key and internet connection."
+                }
+            }
     
     def generate_code(self, prompt: str) -> str:
         """
@@ -32,19 +60,26 @@ class CodingAgent:
             
             client = ai.Client()
             messages = [
-                {"role": "system", "content": "You are a Python code generator. Generate only valid, working Python code. Do not include explanations, just the code."},
+                {"role": "system", "content": self.config["system_prompts"]["generate_code"]},
                 {"role": "user", "content": prompt}
             ]
             
-            response = client.chat.completions.create(
-                model="openai:gpt-4.1",
-                messages=messages,
-                temperature=0.1
-            )
+            # Prepare API call parameters
+            api_params = {
+                "model": self.config["ai"]["model"],
+                "messages": messages,
+                "temperature": self.config["ai"]["temperature"]
+            }
+            
+            # Add optional parameters if they exist
+            if self.config["ai"]["max_tokens"]:
+                api_params["max_tokens"] = self.config["ai"]["max_tokens"]
+            
+            response = client.chat.completions.create(**api_params)
             
             return response.choices[0].message.content
         except Exception as e:
-            return f"# Error generating code: {str(e)}\n# Please check your API key and internet connection."
+            return self.config["error_messages"]["generate_code"].format(error=str(e))
     
     def explain_code(self, code: str) -> str:
         """
@@ -63,19 +98,26 @@ class CodingAgent:
             
             client = ai.Client()
             messages = [
-                {"role": "system", "content": "You are a Python code explainer. Explain what the code does in simple terms."},
+                {"role": "system", "content": self.config["system_prompts"]["explain_code"]},
                 {"role": "user", "content": f"Explain this Python code:\n{code}"}
             ]
             
-            response = client.chat.completions.create(
-                model="openai:gpt-4.1",
-                messages=messages,
-                temperature=0.1
-            )
+            # Prepare API call parameters
+            api_params = {
+                "model": self.config["ai"]["model"],
+                "messages": messages,
+                "temperature": self.config["ai"]["temperature"]
+            }
+            
+            # Add optional parameters if they exist
+            if self.config["ai"]["max_tokens"]:
+                api_params["max_tokens"] = self.config["ai"]["max_tokens"]
+            
+            response = client.chat.completions.create(**api_params)
             
             return response.choices[0].message.content
         except Exception as e:
-            return f"Error explaining code: {str(e)}. Please check your API key and internet connection."
+            return self.config["error_messages"]["explain_code"].format(error=str(e))
     
     def validate_code(self, code: str, criteria: str) -> str:
         """
@@ -95,19 +137,26 @@ class CodingAgent:
             
             client = ai.Client()
             messages = [
-                {"role": "system", "content": "You are a code validator. Check the provided code against the given criteria. Your answer must have a concise analysis, then based on that to answer PASS or FAIL."},
+                {"role": "system", "content": self.config["system_prompts"]["validate_code"]},
                 {"role": "user", "content": f"Validate this code against the following criteria:\n\nCriteria: {criteria}\n\nCode to validate:\n{code}"}
             ]
             
-            response = client.chat.completions.create(
-                model="openai:gpt-4.1",
-                messages=messages,
-                temperature=0.1
-            )
+            # Prepare API call parameters
+            api_params = {
+                "model": self.config["ai"]["model"],
+                "messages": messages,
+                "temperature": self.config["ai"]["temperature"]
+            }
+            
+            # Add optional parameters if they exist
+            if self.config["ai"]["max_tokens"]:
+                api_params["max_tokens"] = self.config["ai"]["max_tokens"]
+            
+            response = client.chat.completions.create(**api_params)
             
             return response.choices[0].message.content
         except Exception as e:
-            return f"Error validating code: {str(e)}. Please check your API key and internet connection."
+            return self.config["error_messages"]["validate_code"].format(error=str(e))
 
 def main():
     """Main entry point for agent execution."""

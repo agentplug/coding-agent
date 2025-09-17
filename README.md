@@ -124,12 +124,29 @@ The agent can be configured via the `config.json` file. Here's the structure:
 
 ### Configuration Options
 
-- **ai.model**: The AI model to use (e.g., "openai:gpt-4.1", "openai:gpt-3.5-turbo")
+- **ai.model**: The AI model to use. Set to "auto" for automatic detection based on available API keys, or specify a model directly (e.g., "openai:gpt-4o", "anthropic:claude-3-5-sonnet-20241022")
 - **ai.temperature**: Controls randomness (0.0 to 1.0, lower = more deterministic)
 - **ai.max_tokens**: Maximum tokens in response (null for no limit)
 - **ai.timeout**: Request timeout in seconds
 - **system_prompts**: Custom prompts for each method
 - **error_messages**: Custom error messages with {error} placeholder
+
+### Supported Providers and Models
+
+The agent automatically detects available API keys and selects the best model:
+
+- **OpenAI**: `openai:gpt-4o` (requires `OPENAI_API_KEY`)
+- **Anthropic**: `anthropic:claude-3-5-sonnet-20241022` (requires `ANTHROPIC_API_KEY`)
+- **Google**: `google:gemini-1.5-pro` (requires `GOOGLE_API_KEY`)
+- **DeepSeek**: `deepseek:deepseek-chat` (requires `DEEPSEEK_API_KEY`)
+- **Fireworks**: `fireworks:accounts/fireworks/models/llama-v3p2-3b-instruct` (requires `FIREWORKS_API_KEY`)
+- **Cohere**: `cohere:command-r-plus` (requires `COHERE_API_KEY`)
+- **Mistral**: `mistral:mistral-large-latest` (requires `MISTRAL_API_KEY`)
+- **Groq**: `groq:llama-3.1-70b-versatile` (requires `GROQ_API_KEY`)
+- **Replicate**: `replicate:meta/llama-2-70b-chat` (requires `REPLICATE_API_TOKEN`)
+- **Hugging Face**: `huggingface:microsoft/DialoGPT-large` (requires `HUGGINGFACE_API_KEY`)
+- **AWS Bedrock**: `aws:anthropic.claude-3-5-sonnet-20241022-v2:0` (requires `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
+- **Azure OpenAI**: `azure:gpt-4o` (requires `AZURE_OPENAI_API_KEY`)
 
 ## Error Handling
 

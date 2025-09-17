@@ -8,6 +8,7 @@ import json
 import sys
 import os
 from typing import Dict, Any
+import os
 
 class CodingAgent:
     """Python code generation agent."""
@@ -15,6 +16,18 @@ class CodingAgent:
     def __init__(self):
         """Initialize the coding agent."""
         self.config = self._load_config()
+
+    def _load_model_name(self) -> str:
+        if os.getenv("OPENAI_API_KEY"):
+            return "openai:gpt-4.1"
+        elif os.getenv("ANTHROPIC_API_KEY"):
+            return "anthropic:claude-3.5-sonnet"
+        elif os.getenv("GOOGLE_API_KEY"):
+            return "google:gemini-2.0-flash"
+        elif os.getenv("DEEPSEEK_API_KEY"):
+            return "deepseek:deepseek-chat"
+        else:
+            return "openai:gpt-4.1"
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from config.json file."""
@@ -26,8 +39,8 @@ class CodingAgent:
             # Fallback to default configuration if config.json doesn't exist
             return {
                 "ai": {
-                    "model": "openai:gpt-4.1",
-                    "temperature": 0.1,
+                    "model": self._load_model_name(),
+                    "temperature": 0.0,
                     "max_tokens": None,
                     "timeout": 30
                 },

@@ -7,9 +7,10 @@ python_version: "3.11+"
 
 installation:
   commands:
+    - "curl -LsSf https://astral.sh/uv/install.sh | sh"
     - "uv venv .venv"
     - "uv pip install -e ."
-  description: "Install the coding agent and its dependencies using uv"
+  description: "Install uv, then install the coding agent and its dependencies using uv"
 
 interface:
   methods:

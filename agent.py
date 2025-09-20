@@ -18,31 +18,82 @@ class CodingAgent:
         self.config = self._load_config()
 
     def _load_model_name(self) -> str:
+        """
+        Automatically detect and return the best available model based on API keys.
+        Follows aisuite provider format: <provider>:<model-name>
+        
+        Returns:
+            str: Model identifier in aisuite format
+        """
+        # Priority order: Check API keys and return corresponding model
+        # OpenAI models
         if os.getenv("OPENAI_API_KEY"):
-            return "openai:gpt-4.1"
+            return "openai:gpt-4o"
+        
+        # Anthropic models
         elif os.getenv("ANTHROPIC_API_KEY"):
-            return "anthropic:claude-3.5-sonnet"
+            return "anthropic:claude-3-5-sonnet-20241022"
+        
+        # Google models
         elif os.getenv("GOOGLE_API_KEY"):
-            return "google:gemini-2.0-flash"
+            return "google:gemini-1.5-pro"
+        
+        # DeepSeek models
         elif os.getenv("DEEPSEEK_API_KEY"):
             return "deepseek:deepseek-chat"
+        
+        # Fireworks models
         elif os.getenv("FIREWORKS_API_KEY"):
             return "fireworks:accounts/fireworks/models/llama-v3p2-3b-instruct"
+        
+        # Cohere models
+        elif os.getenv("COHERE_API_KEY"):
+            return "cohere:command-r-plus"
+        
+        # Mistral models
+        elif os.getenv("MISTRAL_API_KEY"):
+            return "mistral:mistral-large-latest"
+        
+        # Groq models
+        elif os.getenv("GROQ_API_KEY"):
+            return "groq:llama-3.1-70b-versatile"
+        
+        # Replicate models
+        elif os.getenv("REPLICATE_API_TOKEN"):
+            return "replicate:meta/llama-2-70b-chat"
+        
+        # Hugging Face models
+        elif os.getenv("HUGGINGFACE_API_KEY"):
+            return "huggingface:microsoft/DialoGPT-large"
+        
+        # AWS Bedrock models
+        elif os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"):
+            return "aws:anthropic.claude-3-5-sonnet-20241022-v2:0"
+        
+        # Azure OpenAI models
+        elif os.getenv("AZURE_OPENAI_API_KEY"):
+            return "azure:gpt-4o"
+        
+        # Default fallback
         else:
-            return "openai:gpt-4.1"
+            return "openai:gpt-4o"
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from config.json file."""
         config_path = os.path.join(os.path.dirname(__file__), 'config.json')
         try:
             with open(config_path, 'r') as f:
-                return json.load(f)
+                config = json.load(f)
+                # Handle "auto" model selection
+                if config.get("ai", {}).get("model") == "auto":
+                    config["ai"]["model"] = self._load_model_name()
+                return config
         except FileNotFoundError:
             # Fallback to default configuration if config.json doesn't exist
             return {
                 "ai": {
                     "model": self._load_model_name(),
-                    "temperature": 0.0,
+                    "temperature": 0.1,
                     "max_tokens": None,
                     "timeout": 30
                 },

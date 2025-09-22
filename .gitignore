@@ -160,6 +160,7 @@ cython_debug/
 #  *.iml
 #  *.ipr
 #  *.iws
+.idea/
 
 # VS Code
 .vscode/
@@ -182,24 +183,29 @@ Desktop.ini
 *.temp
 *.swp
 *.swo
+*~
 
 # Logs
 *.log
 logs/
 
-# API keys and secrets
-.env.local
-.env.production
-.env.staging
-secrets.json
+# Configuration files with sensitive data
 config.json
+secrets.json
+.secrets
 
-# IDE specific
-.idea/
-*.iml
-*.ipr
-*.iws
+# AI/ML specific
+models/
+checkpoints/
+*.pkl
+*.joblib
+*.h5
+*.hdf5
 
-# Project specific
-*.pid
-*.sock
+# UV specific
+.uv/
+uv.lock
+
+# Agent specific
+agent.log
+agent_debug.log

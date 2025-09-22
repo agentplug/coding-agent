@@ -12,6 +12,7 @@ installation:
     - "pip install uv"
     - "uv venv .venv"
     - "uv pip install -e ."
+    - "uv sync"
   description: "Install uv (via pip or curl fallback), then install the coding agent and its dependencies using uv"
 
 interface:

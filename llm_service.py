@@ -5,6 +5,7 @@ Self-contained LLM service without external agenthub dependencies
 """
 
 import os
+import sys
 import json
 import logging
 from typing import Dict, Any, Optional, List
@@ -98,14 +99,14 @@ class OllamaDetector:
         # 1. Environment variable (user override)
         if os.getenv("OLLAMA_API_URL"):
             url = os.getenv("OLLAMA_API_URL")
-            print(f"🔧 Using Ollama URL from environment: {url}")
+            print(f"🔧 Using Ollama URL from environment: {url}", file=sys.stderr)
             self._ollama_url_cache = url
             return url
 
         # 2. Try to find running Ollama instance
         for url in ModelConfig.OLLAMA_URLS:
             if self.check_ollama_available(url):
-                print(f"🔍 Auto-detected Ollama URL: {url}")
+                print(f"🔍 Auto-detected Ollama URL: {url}", file=sys.stderr)
                 self._ollama_url_cache = url
                 return url
 
@@ -203,11 +204,11 @@ class ModelScorer:
         # If only one model, return it
         if len(model_names) == 1:
             model_name = model_names[0]
-            print(f"🎯 Single model available: {model_name}")
+            print(f"🎯 Single model available: {model_name}", file=sys.stderr)
             return model_name
 
         # Score each model and select the best one
-        print(f"🔍 Evaluating {len(model_names)} models: {', '.join(model_names)}")
+        print(f"🔍 Evaluating {len(model_names)} models: {', '.join(model_names)}", file=sys.stderr)
 
         scored_models = []
         for model_name in model_names:
@@ -217,7 +218,7 @@ class ModelScorer:
         # Sort by score (highest first) and return the best
         scored_models.sort(key=lambda x: x[1], reverse=True)
         best_model = scored_models[0][0]
-        print(f"🏆 Best model selected: {best_model}")
+        print(f"🏆 Best model selected: {best_model}", file=sys.stderr)
         return best_model
 
 
@@ -252,7 +253,7 @@ class ModelDetector:
             if models:
                 best_model = self.model_scorer.select_best_ollama_model(models)
                 selected_model = f"ollama:{best_model}"
-                print(f"🤖 Local model detected: {selected_model} (from {len(models)} available models)")
+                print(f"🤖 Local model detected: {selected_model} (from {len(models)} available models)", file=sys.stderr)
                 return selected_model
 
         return None
@@ -262,18 +263,18 @@ class ModelDetector:
         # Priority 1: Check for local models first (auto-detection)
         local_model = self.detect_running_local_model()
         if local_model:
-            print(f"🎯 Selected model: {local_model}")
+            print(f"🎯 Selected model: {local_model}", file=sys.stderr)
             return local_model
 
         # Priority 2: Check API keys and return corresponding cloud model
         cloud_model = self.detect_cloud_model()
         if cloud_model:
-            print(f"☁️ Selected cloud model: {cloud_model}")
+            print(f"☁️ Selected cloud model: {cloud_model}", file=sys.stderr)
             return cloud_model
 
         # Default fallback
         default_model = "openai:gpt-4o"
-        print(f"⚠️ No models detected, using default: {default_model}")
+        print(f"⚠️ No models detected, using default: {default_model}", file=sys.stderr)
         return default_model
 
 
@@ -301,12 +302,12 @@ class CoreLLMService:
         # Model selection
         if model:
             self.model = model
-            print(f"🎯 Using specified model: {model}")
+            print(f"🎯 Using specified model: {model}", file=sys.stderr)
         elif auto_detect:
             self.model = self.model_detector.detect_best_model()
         else:
             self.model = ModelConfig.CLOUD_MODELS.get("OPENAI_API_KEY", "openai:gpt-4o")
-            print(f"⚠️ No model specified, using default: {self.model}")
+            print(f"⚠️ No model specified, using default: {self.model}", file=sys.stderr)
 
         # Initialize client with appropriate configuration
         if aisuite_client is None:
@@ -384,7 +385,7 @@ class CoreLLMService:
             else:
                 raise ValueError("input_data must be string or list")
         except Exception as e:
-            print(f"AISuite generation failed: {e}")
+            print(f"AISuite generation failed: {e}", file=sys.stderr)
             return self._fallback_response()
 
     def _organize_messages_to_aisuite_format(

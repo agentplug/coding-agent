@@ -8,7 +8,6 @@ import json
 import sys
 import os
 from typing import Dict, Any
-import os
 
 class CodingAgent:
     """Python code generation agent."""
@@ -16,67 +15,22 @@ class CodingAgent:
     def __init__(self):
         """Initialize the coding agent."""
         self.config = self._load_config()
+        self.llm_service = self._initialize_llm_service()
 
-    def _load_model_name(self) -> str:
-        """
-        Automatically detect and return the best available model based on API keys.
-        Follows aisuite provider format: <provider>:<model-name>
-        
-        Returns:
-            str: Model identifier in aisuite format
-        """
-        # Priority order: Check API keys and return corresponding model
-        # OpenAI models
-        if os.getenv("OPENAI_API_KEY"):
-            return "openai:gpt-4o"
-        
-        # Anthropic models
-        elif os.getenv("ANTHROPIC_API_KEY"):
-            return "anthropic:claude-3-5-sonnet-20241022"
-        
-        # Google models
-        elif os.getenv("GOOGLE_API_KEY"):
-            return "google:gemini-1.5-pro"
-        
-        # DeepSeek models
-        elif os.getenv("DEEPSEEK_API_KEY"):
-            return "deepseek:deepseek-chat"
-        
-        # Fireworks models
-        elif os.getenv("FIREWORKS_API_KEY"):
-            return "fireworks:accounts/fireworks/models/llama-v3p2-3b-instruct"
-        
-        # Cohere models
-        elif os.getenv("COHERE_API_KEY"):
-            return "cohere:command-r-plus"
-        
-        # Mistral models
-        elif os.getenv("MISTRAL_API_KEY"):
-            return "mistral:mistral-large-latest"
-        
-        # Groq models
-        elif os.getenv("GROQ_API_KEY"):
-            return "groq:llama-3.1-70b-versatile"
-        
-        # Replicate models
-        elif os.getenv("REPLICATE_API_TOKEN"):
-            return "replicate:meta/llama-2-70b-chat"
-        
-        # Hugging Face models
-        elif os.getenv("HUGGINGFACE_API_KEY"):
-            return "huggingface:microsoft/DialoGPT-large"
-        
-        # AWS Bedrock models
-        elif os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"):
-            return "aws:anthropic.claude-3-5-sonnet-20241022-v2:0"
-        
-        # Azure OpenAI models
-        elif os.getenv("AZURE_OPENAI_API_KEY"):
-            return "azure:gpt-4o"
-        
-        # Default fallback
-        else:
-            return "openai:gpt-4o"
+    def _initialize_llm_service(self):
+        """Initialize the CoreLLMService."""
+        try:
+            # Import the CoreLLMService from agenthub
+            import sys
+            sys.path.append('/Users/nguyennm/Project/agenthub')
+            from agenthub.core.llm.llm_service import CoreLLMService, get_shared_llm_service
+            
+            # Use shared instance to avoid duplicate model detection logs
+            return get_shared_llm_service()
+        except ImportError:
+            # Fallback to direct aisuite if agenthub is not available
+            print("Warning: agenthub.core.llm not available, using fallback aisuite")
+            return None
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from config.json file."""
@@ -84,15 +38,11 @@ class CodingAgent:
         try:
             with open(config_path, 'r') as f:
                 config = json.load(f)
-                # Handle "auto" model selection
-                if config.get("ai", {}).get("model") == "auto":
-                    config["ai"]["model"] = self._load_model_name()
                 return config
         except FileNotFoundError:
             # Fallback to default configuration if config.json doesn't exist
             return {
                 "ai": {
-                    "model": self._load_model_name(),
                     "temperature": 0.1,
                     "max_tokens": None,
                     "timeout": 30
@@ -120,30 +70,29 @@ class CodingAgent:
             Generated Python code as a string
         """
         try:
-            import aisuite as ai
-            from dotenv import load_dotenv
-            load_dotenv()
-            
-            client = ai.Client()
-            messages = [
-                {"role": "system", "content": self.config["system_prompts"]["generate_code"]},
-                {"role": "user", "content": prompt}
-            ]
-            
-            # Prepare API call parameters
-            api_params = {
-                "model": self.config["ai"]["model"],
-                "messages": messages,
-                "temperature": self.config["ai"]["temperature"]
-            }
-            
-            # Add optional parameters if they exist
-            if self.config["ai"]["max_tokens"]:
-                api_params["max_tokens"] = self.config["ai"]["max_tokens"]
-            
-            response = client.chat.completions.create(**api_params)
-            
-            return response.choices[0].message.content
+            if self.llm_service:
+                # Use the new CoreLLMService
+                system_prompt = self.config["system_prompts"]["generate_code"]
+                
+                # Prepare API call parameters
+                api_params = {
+                    "temperature": self.config["ai"]["temperature"]
+                }
+                
+                # Add optional parameters if they exist
+                if self.config["ai"]["max_tokens"]:
+                    api_params["max_tokens"] = self.config["ai"]["max_tokens"]
+                
+                response = self.llm_service.generate(
+                    prompt, 
+                    system_prompt=system_prompt,
+                    **api_params
+                )
+                
+                return response
+            else:
+                # Fallback to direct aisuite
+                return self._fallback_generate_code(prompt)
         except Exception as e:
             return self.config["error_messages"]["generate_code"].format(error=str(e))
     
@@ -158,30 +107,30 @@ class CodingAgent:
             Explanation of what the code does
         """
         try:
-            import aisuite as ai
-            from dotenv import load_dotenv
-            load_dotenv()
-            
-            client = ai.Client()
-            messages = [
-                {"role": "system", "content": self.config["system_prompts"]["explain_code"]},
-                {"role": "user", "content": f"Explain this Python code:\n{code}"}
-            ]
-            
-            # Prepare API call parameters
-            api_params = {
-                "model": self.config["ai"]["model"],
-                "messages": messages,
-                "temperature": self.config["ai"]["temperature"]
-            }
-            
-            # Add optional parameters if they exist
-            if self.config["ai"]["max_tokens"]:
-                api_params["max_tokens"] = self.config["ai"]["max_tokens"]
-            
-            response = client.chat.completions.create(**api_params)
-            
-            return response.choices[0].message.content
+            if self.llm_service:
+                # Use the new CoreLLMService
+                system_prompt = self.config["system_prompts"]["explain_code"]
+                user_prompt = f"Explain this Python code:\n{code}"
+                
+                # Prepare API call parameters
+                api_params = {
+                    "temperature": self.config["ai"]["temperature"]
+                }
+                
+                # Add optional parameters if they exist
+                if self.config["ai"]["max_tokens"]:
+                    api_params["max_tokens"] = self.config["ai"]["max_tokens"]
+                
+                response = self.llm_service.generate(
+                    user_prompt, 
+                    system_prompt=system_prompt,
+                    **api_params
+                )
+                
+                return response
+            else:
+                # Fallback to direct aisuite
+                return self._fallback_explain_code(code)
         except Exception as e:
             return self.config["error_messages"]["explain_code"].format(error=str(e))
     
@@ -197,6 +146,91 @@ class CodingAgent:
             Validation result including pass/fail status and feedback
         """
         try:
+            if self.llm_service:
+                # Use the new CoreLLMService
+                system_prompt = self.config["system_prompts"]["validate_code"]
+                user_prompt = f"Validate this code against the following criteria:\n\nCriteria: {criteria}\n\nCode to validate:\n{code}"
+                
+                # Prepare API call parameters
+                api_params = {
+                    "temperature": self.config["ai"]["temperature"]
+                }
+                
+                # Add optional parameters if they exist
+                if self.config["ai"]["max_tokens"]:
+                    api_params["max_tokens"] = self.config["ai"]["max_tokens"]
+                
+                response = self.llm_service.generate(
+                    user_prompt, 
+                    system_prompt=system_prompt,
+                    **api_params
+                )
+                
+                return response
+            else:
+                # Fallback to direct aisuite
+                return self._fallback_validate_code(code, criteria)
+        except Exception as e:
+            return self.config["error_messages"]["validate_code"].format(error=str(e))
+
+    def _fallback_generate_code(self, prompt: str) -> str:
+        """Fallback method using direct aisuite when CoreLLMService is not available."""
+        try:
+            import aisuite as ai
+            from dotenv import load_dotenv
+            load_dotenv()
+            
+            client = ai.Client()
+            messages = [
+                {"role": "system", "content": self.config["system_prompts"]["generate_code"]},
+                {"role": "user", "content": prompt}
+            ]
+            
+            # Use default model for fallback
+            api_params = {
+                "model": "openai:gpt-4o",  # Default fallback model
+                "messages": messages,
+                "temperature": self.config["ai"]["temperature"]
+            }
+            
+            if self.config["ai"]["max_tokens"]:
+                api_params["max_tokens"] = self.config["ai"]["max_tokens"]
+            
+            response = client.chat.completions.create(**api_params)
+            return response.choices[0].message.content
+        except Exception as e:
+            return self.config["error_messages"]["generate_code"].format(error=str(e))
+
+    def _fallback_explain_code(self, code: str) -> str:
+        """Fallback method using direct aisuite when CoreLLMService is not available."""
+        try:
+            import aisuite as ai
+            from dotenv import load_dotenv
+            load_dotenv()
+            
+            client = ai.Client()
+            messages = [
+                {"role": "system", "content": self.config["system_prompts"]["explain_code"]},
+                {"role": "user", "content": f"Explain this Python code:\n{code}"}
+            ]
+            
+            api_params = {
+                "model": "openai:gpt-4o",  # Default fallback model
+                "messages": messages,
+                "temperature": self.config["ai"]["temperature"]
+            }
+            
+            if self.config["ai"]["max_tokens"]:
+                api_params["max_tokens"] = self.config["ai"]["max_tokens"]
+            
+            response = client.chat.completions.create(**api_params)
+            return response.choices[0].message.content
+        except Exception as e:
+            return self.config["error_messages"]["explain_code"].format(error=str(e))
+
+    def _fallback_validate_code(self, code: str, criteria: str) -> str:
+        """Fallback method using direct aisuite when CoreLLMService is not available."""
+        try:
             import aisuite as ai
             from dotenv import load_dotenv
             load_dotenv()
@@ -207,19 +241,16 @@ class CodingAgent:
                 {"role": "user", "content": f"Validate this code against the following criteria:\n\nCriteria: {criteria}\n\nCode to validate:\n{code}"}
             ]
             
-            # Prepare API call parameters
             api_params = {
-                "model": self.config["ai"]["model"],
+                "model": "openai:gpt-4o",  # Default fallback model
                 "messages": messages,
                 "temperature": self.config["ai"]["temperature"]
             }
             
-            # Add optional parameters if they exist
             if self.config["ai"]["max_tokens"]:
                 api_params["max_tokens"] = self.config["ai"]["max_tokens"]
             
             response = client.chat.completions.create(**api_params)
-            
             return response.choices[0].message.content
         except Exception as e:
             return self.config["error_messages"]["validate_code"].format(error=str(e))

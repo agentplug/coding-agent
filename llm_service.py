@@ -66,8 +66,8 @@ class ModelConfig:
 
     # Common LM Studio URLs for auto-detection
     LMSTUDIO_URLS = [
-        "http://localhost:1234",  # LM Studio default port
-        "http://localhost:8080",  # Alternative port
+        "http://localhost:1234/v1",  # LM Studio default with /v1
+        "http://127.0.0.1:1234/v1",  # Alternative localhost
     ]
 
     # Cloud provider models (fallback when no local models)
@@ -90,11 +90,12 @@ class ModelConfig:
     AWS_REQUIRED_VARS = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"]
 
 
-class OllamaDetector:
-    """Handles Ollama local model detection and management"""
+class LocalModelDetector:
+    """Handles local model detection and management (Ollama and LM Studio)"""
     
     def __init__(self):
         self._ollama_url_cache: Optional[str] = None
+        self._lmstudio_url_cache: Optional[str] = None
     
     def detect_ollama_url(self) -> str:
         """Auto-detect Ollama API URL with fallback options (cached)"""
@@ -153,7 +154,6 @@ class OllamaDetector:
             # Fallback to urllib (standard library)
             try:
                 import urllib.request
-                import json
                 req = urllib.request.Request(f"{url}/api/tags")
                 response = urllib.request.urlopen(req, timeout=2)
                 if response.status == 200:
@@ -165,13 +165,6 @@ class OllamaDetector:
             pass
         return []
 
-
-class LMStudioDetector:
-    """Handles LM Studio local model detection and management"""
-    
-    def __init__(self):
-        self._lmstudio_url_cache: Optional[str] = None
-    
     def detect_lmstudio_url(self) -> str:
         """Auto-detect LM Studio API URL with fallback options (cached)"""
         # Return cached URL if available
@@ -193,7 +186,7 @@ class LMStudioDetector:
                 return url
 
         # 3. Default fallback
-        url = "http://localhost:1234"
+        url = "http://localhost:1234/v1"
         self._lmstudio_url_cache = url
         return url
 
@@ -329,11 +322,12 @@ class ModelScorer:
         print(f"🏆 Best model selected: {best_model}", file=sys.stderr)
         return best_model
 
-    def select_best_model(self, available_models: List[str], is_lmstudio: bool = False) -> str:
+    @staticmethod
+    def select_best_model(available_models: List[str], is_lmstudio: bool = False) -> str:
         """Select the best model from available models (unified for Ollama and LM Studio)"""
         if not available_models:
             fallback = "llama3:latest" if not is_lmstudio else "meta-llama/llama-3.2-1b-instruct"
-            print(f"No models available, using fallback: {fallback}", file=sys.stderr)
+            print(f"⚠️ No models available, using fallback: {fallback}", file=sys.stderr)
             return fallback
 
         # If only one model, return it
@@ -345,33 +339,24 @@ class ModelScorer:
         # Score each model and select the best one
         print(f"🔍 Evaluating {len(available_models)} models: {', '.join(available_models)}", file=sys.stderr)
 
-        # Log scoring details
-        for model_name in available_models:
-            score = self.calculate_model_score(model_name)
-            print(f"📊 {model_name}: {score} points", file=sys.stderr)
-
-        best_model = self._score_and_select_best(available_models)
-        print(f"🏆 Best model selected: {best_model}", file=sys.stderr)
-        return best_model
-
-    def _score_and_select_best(self, model_names: List[str]) -> str:
-        """Score models and return the best one"""
         scored_models = []
-        for model_name in model_names:
+        for model_name in available_models:
             score = ModelScorer.calculate_model_score(model_name)
+            print(f"📊 {model_name}: {score} points", file=sys.stderr)
             scored_models.append((model_name, score))
 
         # Sort by score (highest first) and return the best
         scored_models.sort(key=lambda x: x[1], reverse=True)
-        return scored_models[0][0]
+        best_model = scored_models[0][0]
+        print(f"🏆 Best model selected: {best_model}", file=sys.stderr)
+        return best_model
 
 
 class ModelDetector:
     """Handles automatic model detection and selection"""
     
     def __init__(self):
-        self.ollama_detector = OllamaDetector()
-        self.lmstudio_detector = LMStudioDetector()
+        self.local_detector = LocalModelDetector()
         self.model_scorer = ModelScorer()
     
     def detect_cloud_model(self) -> Optional[str]:
@@ -390,47 +375,43 @@ class ModelDetector:
     def detect_running_local_model(self) -> Optional[str]:
         """Detect running local models with auto-detection (preferring Ollama)"""
         # Try Ollama first (preferred)
-        ollama_model = self.detect_ollama_model()
+        ollama_model = self._detect_ollama_model()
         if ollama_model:
             return ollama_model
         
         # Fallback to LM Studio if Ollama not available
-        lmstudio_model = self.detect_lmstudio_model()
+        lmstudio_model = self._detect_lmstudio_model()
         if lmstudio_model:
             return lmstudio_model
-        
-        print("No local models detected", file=sys.stderr)
+
         return None
 
-    def detect_ollama_model(self) -> Optional[str]:
+    def _detect_ollama_model(self) -> Optional[str]:
         """Detect Ollama models"""
-        ollama_url = self.ollama_detector.detect_ollama_url()
+        ollama_url = self.local_detector.detect_ollama_url()
 
-        if self.ollama_detector.check_ollama_available(ollama_url):
+        if self.local_detector.check_ollama_available(ollama_url):
             # Get available models
-            models = self.ollama_detector.get_ollama_models(ollama_url)
+            models = self.local_detector.get_ollama_models(ollama_url)
             if models:
                 best_model = self.model_scorer.select_best_ollama_model(models)
                 selected_model = f"ollama:{best_model}"
-                print(f"🤖 Ollama model detected: {selected_model} (from {len(models)} available models)", file=sys.stderr)
+                print(f"🤖 Local model detected: {selected_model} (from {len(models)} available models)", file=sys.stderr)
                 return selected_model
         return None
 
-    def detect_lmstudio_model(self) -> Optional[str]:
+    def _detect_lmstudio_model(self) -> Optional[str]:
         """Detect LM Studio models as fallback"""
-        lmstudio_urls = [
-            "http://localhost:1234",  # LM Studio default port
-            "http://localhost:8080",  # Alternative port
-        ]
-        
-        for url in lmstudio_urls:
-            if self.lmstudio_detector.check_lmstudio_available(url):
-                models = self.lmstudio_detector.get_lmstudio_models(url)
-                if models:
-                    best_model = self.model_scorer.select_best_model(models, is_lmstudio=True)
-                    selected_model = f"lmstudio:{best_model}"
-                    print(f"🤖 LM Studio model detected: {selected_model} (from {len(models)} available models)", file=sys.stderr)
-                    return selected_model
+        lmstudio_url = self.local_detector.detect_lmstudio_url()
+
+        if self.local_detector.check_lmstudio_available(lmstudio_url):
+            # Get available models
+            models = self.local_detector.get_lmstudio_models(lmstudio_url)
+            if models:
+                best_model = self.model_scorer.select_best_model(models, is_lmstudio=True)
+                selected_model = f"lmstudio:{best_model}"
+                print(f"🤖 LM Studio model detected: {selected_model} (from {len(models)} available models)", file=sys.stderr)
+                return selected_model
         return None
 
     def detect_best_model(self) -> str:
@@ -468,7 +449,7 @@ class CoreLLMService:
         """Initialize Core LLM Service"""
         # Initialize components
         self.model_detector = ModelDetector()
-        self.ollama_detector = OllamaDetector()
+        self.local_detector = LocalModelDetector()
         
         # Initialize caching
         self.cache: Dict[str, Any] = {}
@@ -508,7 +489,7 @@ class CoreLLMService:
         import aisuite as ai
 
         # Get Ollama configuration
-        api_url = self.ollama_detector.detect_ollama_url()
+        api_url = self.local_detector.detect_ollama_url()
         timeout = int(os.getenv("OLLAMA_TIMEOUT", "300"))
 
         return ai.Client(
@@ -547,47 +528,15 @@ class CoreLLMService:
         # Check common LM Studio ports
         lmstudio_urls = [
             "http://localhost:1234/v1",  # LM Studio default with /v1
-            "http://localhost:8080/v1",  # Alternative port with /v1
+            "http://127.0.0.1:1234/v1",  # Alternative localhost
         ]
         
         for url in lmstudio_urls:
-            if self._check_lmstudio_available(url):
+            if self.local_detector.check_lmstudio_available(url):
                 return url
         
-        # Fallback to default
+        # Default fallback
         return "http://localhost:1234/v1"
-
-    def _check_lmstudio_available(self, url: str) -> bool:
-        """Check if LM Studio is running at the given URL"""
-        try:
-            # Try requests first (if available)
-            import requests
-            # If URL already has /v1, use it directly, otherwise add it
-            if url.endswith("/v1"):
-                models_url = f"{url}/models"
-            else:
-                models_url = f"{url}/v1/models"
-            
-            response = requests.get(models_url, timeout=1)
-            return response.status_code == 200
-        except ImportError:
-            # Fallback to urllib (standard library)
-            try:
-                import urllib.request
-                import urllib.error
-                # If URL already has /v1, use it directly, otherwise add it
-                if url.endswith("/v1"):
-                    models_url = f"{url}/models"
-                else:
-                    models_url = f"{url}/v1/models"
-                
-                req = urllib.request.Request(models_url)
-                response = urllib.request.urlopen(req, timeout=1)
-                return response.status == 200
-            except Exception:
-                return False
-        except Exception:
-            return False
 
     def generate(
         self,
@@ -680,10 +629,6 @@ class CoreLLMService:
         """Get the currently selected model"""
         return self.model
 
-    def is_local_model(self) -> bool:
-        """Check if current model is local (Ollama or LM Studio)"""
-        return self.model.startswith("ollama:") or self.model.startswith("lmstudio:")
-
     def _get_actual_model_name(self) -> str:
         """Get the actual model name for API calls (removes platform prefix)"""
         if self.model.startswith("ollama:"):
@@ -695,6 +640,10 @@ class CoreLLMService:
             return f"openai:{model_name}"
         else:
             return self.model
+
+    def is_local_model(self) -> bool:
+        """Check if current model is local (Ollama or LM Studio)"""
+        return self.model.startswith("ollama:") or self.model.startswith("lmstudio:")
 
     def get_model_info(self) -> ModelInfo:
         """Get detailed information about the current model"""

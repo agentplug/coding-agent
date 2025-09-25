@@ -40,7 +40,26 @@ class CodingAgent:
                     "timeout": 30
                 },
                 "system_prompts": {
-                    "generate_code": "You are a Python code generator. Generate only valid, working Python code. Do not include explanations, just the code.",
+                    "generate_code": """You are a Python code generator. You MUST follow these rules:
+
+1. Generate ONLY valid Python code
+2. NO explanations, comments, or text outside the code
+3. NEVER use markdown formatting like ```python or ```
+4. NEVER wrap code in code blocks
+5. Start directly with the Python code (def, class, import, etc.)
+6. End with the last line of Python code
+
+CORRECT OUTPUT:
+def calculate_sum(a, b):
+    return a + b
+
+INCORRECT OUTPUT:
+```python
+def calculate_sum(a, b):
+    return a + b
+```
+
+Remember: Output raw Python code only, no markdown, no explanations.""",
                     "explain_code": "You are a Python code explainer. Explain what the code does in simple terms.",
                     "validate_code": "You are a code validator. Check the provided code against the given criteria. Your answer must have a concise analysis, then based on that to answer PASS or FAIL."
                 },
